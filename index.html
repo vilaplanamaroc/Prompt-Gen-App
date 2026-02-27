@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <!-- Icône iPhone + favicon (utilise test.png à la racine du repo) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="test.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="test.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="test.png" />
+
+  <title>Prompt Studio (Local)</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --panel:#ffffff;
+      --panel2:#fbfcff;
+      --stroke:rgba(15,20,35,.10);
+      --stroke2:rgba(15,20,35,.16);
+      --text:#0f1423;
+      --muted:rgba(15,20,35,.66);
+      --brand:#2a6df6;
+      --brand2:#1f57c6;
+      --ok:#1b9c59;
+      --danger:#d93b3b;
+      --chip:#eef4ff;
+      --chipStroke:rgba(42,109,246,.26);
+      --selBg:#edf7f1;
+      --selStroke:rgba(27,156,89,.24);
+      --shadow:0 10px 34px rgba(15,20,35,.08);
+      --radius:16px;
+      --radius2:12px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; overflow-x:hidden; }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(1100px 520px at 10% -10%, #eaf1ff 0%, rgba(234,241,255,0) 60%),
+        radial-gradient(900px 520px at 110% 0%, #f2f7ff 0%, rgba(242,247,255,0) 50%),
+        var(--bg);
+    }
+
+    .wrap{ max-width:1180px; margin:0 auto; padding:18px 18px 26px; }
+
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; margin-bottom:14px;
+    }
+    .title{ display:flex; flex-direction:column; gap:4px; }
+    .title h1{ margin:0; font-weight:800; font-size:18px; letter-spacing:.2px; }
+    .title .sub{ font-size:12px; color:var(--muted); }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .pad{ padding:14px; }
+
+    .menuGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:12px;
+      margin-top:10px;
+    }
+    @media (max-width: 880px){
+      .menuGrid{ grid-template-columns:1fr; }
+    }
+
+    .tile{
+      padding:14px;
+      border-radius:16px;
+      border:1px solid var(--stroke);
+      background:linear-gradient(180deg, #ffffff, #fbfcff);
+      cursor:pointer;
+      transition: transform .05s ease, border-color .12s ease, box-shadow .12s ease;
+      box-shadow: 0 10px 30px rgba(15,20,35,.06);
+      user-select:none;
+      min-height:92px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:6px;
+    }
+    .tile:hover{ border-color:rgba(42,109,246,.25); box-shadow: 0 16px 42px rgba(15,20,35,.10); }
+    .tile:active{ transform: translateY(1px); }
+    .tile .t1{ font-weight:900; font-size:14px; }
+    .tile .t2{ color:var(--muted); font-size:12px; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 1020px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .sectionTitle{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px; margin-bottom:10px;
+    }
+    .sectionTitle h2{ margin:0; font-size:14px; font-weight:900; }
+    .hint{ color:var(--muted); font-size:12px; }
+
+    .btn{
+      border:1px solid var(--stroke2);
+      background:var(--panel);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:13px;
+      transition: transform .03s ease, background .12s ease, border-color .12s ease;
+      user-select:none;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background:linear-gradient(180deg, var(--brand), var(--brand2));
+      border-color:rgba(42,109,246,.35);
+      color:#fff;
+    }
+    .btn.danger{
+      background:#fff5f5;
+      border-color:rgba(217,59,59,.28);
+      color:var(--danger);
+    }
+    .btn.ok{
+      background:#f1fbf5;
+      border-color:rgba(27,156,89,.25);
+      color:var(--ok);
+    }
+    .btn.small{ padding:8px 10px; font-size:12px; }
+    .btn.ghost{ background:transparent; }
+
+    .footerBtns{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    /* Collapsible section */
+    .blk{
+      border:1px solid var(--stroke);
+      background:var(--panel2);
+      border-radius:14px;
+      overflow:hidden;
+      margin-bottom:10px;
+    }
+    .blkHead{
+      cursor:pointer;
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      user-select:none;
+    }
+    .blkHead .left{
+      display:flex; flex-direction:column; gap:3px; min-width:0;
+    }
+    .blkHead .t{ font-size:13px; font-weight:900; }
+    .blkHead .s{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:560px; }
+    .blkHead .right{ display:flex; gap:8px; align-items:center; flex:0 0 auto; }
+    @media (max-width:1020px){ .blkHead .s{ max-width:92vw; } }
+
+    .blkBody{ padding:0 12px 12px; display:none; }
+    .blk.open .blkBody{ display:block; }
+
+    .search{
+      width:100%;
+      margin:0 0 10px;
+      padding:9px 10px;
+      border-radius:12px;
+      border:1px solid var(--stroke);
+      background:#fff;
+      outline:none;
+      font-size:13px;
+    }
+    .list{
+      max-height:220px;
+      overflow:auto;
+      padding-right:4px;
+    }
+    .opt{
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid transparent;
+      background:transparent;
+      cursor:pointer;
+      user-select:none;
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .opt:hover{ background:rgba(15,20,35,.04); }
+    .opt.on{ background:var(--selBg); border-color:var(--selStroke); }
+    .dot{
+      width:10px; height:10px; border-radius:999px;
+      border:1px solid rgba(15,20,35,.22);
+      margin-top:4px;
+      flex:0 0 auto;
+    }
+    .opt.on .dot{ border-color:rgba(27,156,89,.55); background:rgba(27,156,89,.70); }
+    .opt .txt{ font-size:13px; line-height:1.25; }
+    .opt.on .txt{ font-weight:900; color:#0f2b1d; }
+
+    .chips{
+      margin-top:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .chip{
+      padding:7px 10px;
+      border-radius:999px;
+      background:var(--chip);
+      border:1px solid var(--chipStroke);
+      color:var(--brand2);
+      font-size:12px;
+      font-weight:900;
+    }
+
+    /* Description panel */
+    textarea{
+      width:100%;
+      border-radius:14px;
+      border:1px solid var(--stroke);
+      background:#fff;
+      outline:none;
+      padding:12px;
+      font-size:14px;
+      min-height:120px;
+      resize:vertical;
+    }
+    .descBox{
+      border:1px solid var(--stroke);
+      border-radius:14px;
+      background:linear-gradient(180deg,#ffffff,#fbfcff);
+      padding:12px;
+      margin:0 0 12px;
+      display:none;
+    }
+    .descBox.open{ display:block; }
+    .descTop{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px; margin-bottom:8px;
+    }
+    .descTop .tt{ font-weight:900; font-size:14px; }
+    .descBtns{ display:flex; flex-wrap:wrap; gap:10px; }
+
+    /* Output */
+    .outHead{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      margin-bottom:10px;
+    }
+    .outHead .label{ font-size:13px; color:var(--muted); font-weight:900; }
+    .out{
+      border-radius:16px;
+      border:1px solid var(--stroke);
+      background:#fff;
+      padding:12px;
+      min-height:240px;
+      white-space:pre-wrap;
+      font-family:var(--mono);
+      font-size:12.5px;
+      line-height:1.45;
+    }
+    .status{ margin-top:10px; font-size:12px; color:var(--muted); font-weight:800; }
+    .status.ok{ color:var(--ok); }
+    .status.err{ color:var(--danger); }
+
+    .hide{ display:none !important; }
+
+    /* Image preview (i2t) */
+    .preview{
+      border:1px dashed var(--stroke2);
+      border-radius:14px;
+      padding:12px;
+      background:#fff;
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+    }
+    .preview img{
+      width:120px; height:120px;
+      object-fit:cover;
+      border-radius:12px;
+      border:1px solid var(--stroke);
+      background:#f2f4f8;
+      display:none;
+    }
+    .preview .pTxt{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h1>Prompt Studio (Local)</h1>
+        <div class="sub">Image→Image | Image→Vidéo | Image→Texte</div>
+      </div>
+      <button class="btn ghost small" id="btnHome" style="visibility:hidden;">↩ Menu</button>
+    </div>
+
+    <!-- MENU -->
+    <div class="card pad" id="screenMenu">
+      <div class="sectionTitle">
+        <h2>Démarrer</h2>
+        <div class="hint">Choisis une orientation, puis sélectionne tes options.</div>
+      </div>
+
+      <div class="menuGrid">
+        <div class="tile" id="tileI2I">
+          <div class="t1">Image → Image</div>
+          <div class="t2">Créer un prompt de transformation d’image.</div>
+        </div>
+        <div class="tile" id="tileI2V">
+          <div class="t1">Image → Vidéo</div>
+          <div class="t2">Créer un prompt d’animation d’image.</div>
+        </div>
+        <div class="tile" id="tileI2T">
+          <div class="t1">Image → Texte</div>
+          <div class="t2">Créer un prompt d’analyse d’une image (à coller dans ton IA).</div>
+        </div>
+      </div>
+
+      <div class="status" id="menuStatus"></div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="grid hide" id="screenMain">
+      <!-- LEFT -->
+      <div class="card pad">
+        <div class="sectionTitle">
+          <h2 id="modeTitle">Mode</h2>
+          <div class="hint" id="modeHint">Multi-choix. Les sélections restent visibles.</div>
+        </div>
+
+        <!-- Description panel -->
+        <div class="descBox" id="descBox">
+          <div class="descTop">
+            <div class="tt">Description</div>
+            <div class="descBtns">
+              <button class="btn small" id="btnMic">🎙 Dicter</button>
+              <button class="btn small danger" id="btnClearDesc">Effacer</button>
+              <button class="btn small" id="btnCloseDesc">Fermer</button>
+            </div>
+          </div>
+          <div class="hint" style="margin-bottom:8px;">
+            Écris ta description. Ensuite “Ajouter une description” génère le prompt final (description + choix).
+          </div>
+          <textarea id="descText" placeholder="Écris ta description ici…"></textarea>
+          <div class="footerBtns">
+            <button class="btn primary" id="btnGenFinal">Générer prompt final</button>
+          </div>
+          <div class="status" id="descStatus"></div>
+        </div>
+
+        <!-- i2t upload -->
+        <div class="card pad hide" id="i2tUpload" style="box-shadow:none; border-radius:14px; margin:0 0 12px; background:linear-gradient(180deg,#ffffff,#fbfcff);">
+          <div class="sectionTitle" style="margin-bottom:8px;">
+            <h2>Importer une image (local)</h2>
+            <div class="hint">L’app ne lit pas l’image. Elle te génère un prompt d’analyse à coller dans ton IA + joindre l’image.</div>
+          </div>
+          <input type="file" id="imgFile" accept="image/*" />
+          <div style="height:10px;"></div>
+          <div class="preview">
+            <img id="imgPreview" alt="preview" />
+            <div class="pTxt">Aperçu local. Rien ne sort de ton PC.</div>
+          </div>
+        </div>
+
+        <!-- Sections container -->
+        <div id="sections"></div>
+
+        <!-- Bottom buttons (your workflow) -->
+        <div class="footerBtns">
+          <button class="btn danger" id="btnClearAll">Effacer toute la liste</button>
+          <button class="btn ok" id="btnListChoices">Lister les choix</button>
+          <button class="btn primary" id="btnAddDesc">Ajouter une description</button>
+        </div>
+
+        <div class="status" id="leftStatus"></div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="card pad">
+        <div class="outHead">
+          <div class="label" id="outTitle">Sortie</div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn small" id="btnCopyOut">Copier</button>
+            <button class="btn small danger" id="btnClearOut">Effacer</button>
+          </div>
+        </div>
+        <div class="out" id="output">(Choisis un mode, puis “Lister les choix” ou “Ajouter une description”.)</div>
+        <div class="status" id="rightStatus"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- Helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+  const setStatus = (id, msg="", type="") => {
+    const el = $(id);
+    if(!el) return;
+    el.className = "status " + (type||"");
+    el.textContent = msg || "";
+  };
+  const setOutput = (title, text) => {
+    $("outTitle").textContent = title;
+    $("output").textContent = text;
+  };
+
+  // ---------- Mode & State ----------
+  let MODE = null; // 'i2i' | 'i2v' | 'i2t'
+  const STATE = { i2i:{}, i2v:{}, i2t:{} };
+
+  // ---------- Data (FR only) ----------
+  const DATA = {
+    i2i: {
+      title: "Mode: Image → Image",
+      sections: [
+        { key:"protection", title:"Protection & fidélité", items:[
+          "Conserver identité","Conserver proportions","Conserver âge/morphologie","Autoriser échange vêtements/coiffure",
+          "Transformation légère","Transformation moyenne","Transformation forte"
+        ]},
+        { key:"style", title:"Style visuel", items:[
+          "Réaliste cinématographique","Documentaire","Publicité / luxe","3D animation","Anime","Illustration / peinture",
+          "Dark sci-fi","Horreur","Fantastique","Niveau stylisation léger","Niveau stylisation moyen","Niveau stylisation fort"
+        ]},
+        { key:"composition", title:"Composition (cadrage)", items:[
+          "Plan large","Plan moyen","Gros plan","Très gros plan","Portrait","Paysage","Profondeur de champ faible","Profondeur de champ forte"
+        ]},
+        { key:"angles", title:"Angle & orientation (caméra/corps/visage)", items:[
+          "Caméra: face","Caméra: plongée","Caméra: contre-plongée","Caméra: vue arrière","Caméra: vue trois quarts",
+          "Corps: face","Corps: dos","Corps: profil droit","Corps: profil gauche","Corps: trois quarts",
+          "Visage: face","Visage: profil droit","Visage: profil gauche","Visage: trois quarts",
+          "Regard: vers caméra","Regard: droite","Regard: gauche","Regard: haut","Regard: bas","Regard: hors champ"
+        ]},
+        { key:"pose", title:"Pose & posture", items:[
+          "Debout","Assis","Accroupi","À genoux","Grand écart",
+          "Allongé sur le dos","Allongé sur le ventre","Allongé sur le côté",
+          "Position proche","Position éloignée","Face à face","Dos à dos","L’un à côté de l’autre"
+        ]},
+        { key:"emotion", title:"Émotion", items:[
+          "Joie","Tristesse","Colère","Peur","Enthousiasme","Nostalgie","Tension / crispation",
+          "Intensité faible","Intensité moyenne","Intensité forte"
+        ]},
+        { key:"env", title:"Environnement (lieu)", items:[
+          "Forêt","Plage","Sahara","Montagne","Grotte","Île","Espace","Urbain","Intérieur","Extérieur",
+          "Nuit","Coucher de soleil","Brouillard","Pluie","Neige","Vent"
+        ]},
+        { key:"multiPeople", title:"Multi-personnes (2+)", items:[
+          "Échanger tenues","Échanger coiffures","Se regarder","Se battre","S’aimer","S’embrasser","Se disputer",
+          "Se réconcilier","Se soutenir","Partager / coopérer"
+        ]},
+        { key:"multiImages", title:"Multi-images (2–3 images)", items:[
+          "Image A rejoint le monde de B","Mondes différents (fusion)","Appliquer effet/style de A sur B",
+          "Mélanger décors (hybride)","Rassembler sujets dans une scène finale","Transition A→B (statique)"
+        ]},
+      ]
+    },
+
+    i2v: {
+      title: "Mode: Image → Vidéo",
+      sections: [
+        { key:"protection", title:"Protection & stabilité", items:[
+          "Identité fixe","Pas de morphing","Cohérence inter-frame","Stabilité du style","Maintenir qualité (pas de dégradation)"
+        ]},
+        { key:"subjectMove", title:"Mouvement du sujet", items:[
+          "Marcher (avant, naturel)","Courir","Attaquer","Se défendre","Danser","S’amuser",
+          "Tourner sur soi","Respiration subtile","Clignement","Regard vivant",
+          "Intensité faible","Intensité moyenne","Intensité forte"
+        ]},
+        { key:"envAnim", title:"Environnement animé", items:[
+          "Vent","Pluie","Neige","Particules","Lumière dynamique","Ombres mouvantes","Arrière-plan vivant","Soleil fort / chaleur (effet chaleur)"
+        ]},
+        { key:"camera", title:"Caméra (mouvement)", items:[
+          "Caméra fixe","Dolly in","Dolly out","Panoramique","Tilt","Orbit","Drone","Handheld",
+          "Angle: face","Angle: plongée","Angle: contre-plongée","Angle: vue arrière","Angle: vue trois quarts"
+        ]},
+        { key:"time", title:"Rythme & temps", items:[
+          "Lent contemplatif","Naturel","Dynamique","Accéléré","Ralenti","Durée courte","Durée moyenne","Durée longue"
+        ]},
+        { key:"audio", title:"Audio", items:[
+          "Silence","Ambiance nature","Ambiance urbaine","Musique douce","Musique dramatique","Narrateur","Dialogue"
+        ]},
+        { key:"multiPeople", title:"Multi-personnes (2+)", items:[
+          "Échanger tenues/coiffures","Se regarder","Se battre","S’aimer","S’embrasser","Se disputer",
+          "Se réconcilier","Se soutenir","Partager / coopérer"
+        ]},
+        { key:"multiImages", title:"Multi-images (2–3 images)", items:[
+          "Fusion de mondes (A+B)","Entrer dans le monde de l’autre","Appliquer l’effet/style de A sur B",
+          "Transition A→B","Scène finale rassemblée"
+        ]},
+        { key:"safety", title:"Sécurité", items:[
+          "Pas de marche arrière involontaire","Pas de glitch","Physique cohérente","Fluidité naturelle"
+        ]},
+      ]
+    },
+
+    i2t: {
+      title: "Mode: Image → Texte",
+      sections: [
+        { key:"targets", title:"Cibles d’analyse", items:[
+          "Description globale","Style visuel","Composition","Angles","Pose","Émotion",
+          "Environnement","Lumière","Couleur","Effets","Hypothèse objectif/DOF"
+        ]}
+      ]
+    }
+  };
+
+  function ensureState(){
+    if(!MODE) return;
+    for(const s of DATA[MODE].sections){
+      if(!STATE[MODE][s.key]) STATE[MODE][s.key] = new Set();
+    }
+  }
+
+  // ---------- UI Build ----------
+  function buildSections(){
+    ensureState();
+    const root = $("sections");
+    root.innerHTML = "";
+
+    for(const sec of DATA[MODE].sections){
+      const blk = document.createElement("div");
+      blk.className = "blk";
+      blk.dataset.key = sec.key;
+
+      const head = document.createElement("div");
+      head.className = "blkHead";
+      head.innerHTML = `
+        <div class="left">
+          <div class="t">${esc(sec.title)}</div>
+          <div class="s" id="sub_${sec.key}">Aucun choix</div>
+        </div>
+        <div class="right">
+          <button class="btn small ghost" type="button" data-act="all">Tout</button>
+          <button class="btn small ghost" type="button" data-act="none">Rien</button>
+        </div>
+      `;
+
+      const body = document.createElement("div");
+      body.className = "blkBody";
+      body.innerHTML = `
+        <input class="search" id="q_${sec.key}" type="text" placeholder="Rechercher…" />
+        <div class="list" id="list_${sec.key}"></div>
+        <div class="chips" id="chips_${sec.key}"></div>
+      `;
+
+      blk.appendChild(head);
+      blk.appendChild(body);
+      root.appendChild(blk);
+
+      // Fill list
+      const list = $(`list_${sec.key}`);
+      sec.items.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "opt";
+        row.dataset.txt = item.toLowerCase();
+        row.innerHTML = `<div class="dot"></div><div class="txt">${esc(item)}</div>`;
+        row.addEventListener("click", () => togglePick(sec.key, item));
+        list.appendChild(row);
+      });
+
+      // Head click (open/close) but not when clicking the right buttons
+      head.addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if(btn) return;
+        blk.classList.toggle("open");
+      });
+
+      // Right buttons
+      head.querySelectorAll("button").forEach(b => {
+        b.addEventListener("click", (e) => {
+          e.preventDefault(); e.stopPropagation();
+          const act = b.dataset.act;
+          if(act==="all") selectAll(sec.key, true);
+          if(act==="none") selectAll(sec.key, false);
+        });
+      });
+
+      // Search
+      $(`q_${sec.key}`).addEventListener("input", (e) => {
+        filterList(sec.key, e.target.value || "");
+      });
+
+      renderSection(sec.key);
+    }
+  }
+
+  function renderSection(key){
+    const set = STATE[MODE][key] || new Set();
+    const list = $(`list_${key}`);
+    const sub = $(`sub_${key}`);
+    const chips = $(`chips_${key}`);
+    if(!list || !sub || !chips) return;
+
+    list.querySelectorAll(".opt").forEach(r => {
+      const txt = r.querySelector(".txt").textContent;
+      r.classList.toggle("on", set.has(txt));
+    });
+
+    const vals = Array.from(set);
+    sub.textContent = vals.length ? `${vals.length} sélectionné(s)` : "Aucun choix";
+    chips.innerHTML = vals.map(v => `<div class="chip">${esc(v)}</div>`).join("");
+  }
+
+  function togglePick(key, value){
+    const set = STATE[MODE][key];
+    if(set.has(value)) set.delete(value);
+    else set.add(value);
+    renderSection(key);
+  }
+
+  function selectAll(key, on){
+    const sec = DATA[MODE].sections.find(s => s.key===key);
+    STATE[MODE][key] = new Set(on ? sec.items : []);
+    renderSection(key);
+  }
+
+  function filterList(key, q){
+    q = (q||"").toLowerCase().trim();
+    const list = $(`list_${key}`);
+    if(!list) return;
+    list.querySelectorAll(".opt").forEach(r => {
+      const t = r.dataset.txt || "";
+      r.style.display = (!q || t.includes(q)) ? "" : "none";
+    });
+  }
+
+  // ---------- Workflow Buttons ----------
+  function clearAll(){
+    if(!MODE) return;
+    ensureState();
+    for(const k of Object.keys(STATE[MODE])) STATE[MODE][k] = new Set();
+    for(const s of DATA[MODE].sections) renderSection(s.key);
+    $("descText").value = "";
+    setStatus("descStatus","");
+    setStatus("leftStatus","Sélections effacées.","ok");
+  }
+
+  function listChoices(){
+    if(!MODE) return;
+    ensureState();
+
+    let lines = [];
+    lines.push(`Liste des choix — ${DATA[MODE].title.replace("Mode: ","")}`);
+    lines.push("");
+
+    let any = false;
+    for(const sec of DATA[MODE].sections){
+      const vals = Array.from(STATE[MODE][sec.key] || []);
+      if(vals.length){
+        any = true;
+        lines.push(`- ${sec.title}:`);
+        vals.forEach(v => lines.push(`  • ${v}`));
+        lines.push("");
+      }
+    }
+    if(!any) lines.push("(Aucun choix sélectionné.)");
+
+    setOutput("Liste des choix", lines.join("\n").trim());
+    setStatus("leftStatus","Liste générée. Tu peux copier.","ok");
+    setStatus("rightStatus","Liste générée. Tu peux copier.","ok");
+  }
+
+  function openDesc(){
+    if(!MODE) return;
+    $("descBox").classList.add("open");
+    $("descText").focus();
+    setStatus("leftStatus","");
+  }
+
+  function closeDesc(){
+    $("descBox").classList.remove("open");
+    setStatus("descStatus","");
+  }
+
+  function makeFinalPrompt(){
+    if(!MODE) return;
+    ensureState();
+
+    // i2t = prompt d'analyse (pas d'analyse locale)
+    if(MODE === "i2t"){
+      const targets = Array.from(STATE.i2t.targets || []);
+      const tline = targets.length ? targets.join(", ") : "tout";
+      const prompt =
+`Tâche: Image→Texte (analyse de l’image jointe).
+
+Analyse l’image fournie et retourne:
+- ${tline}
+
+Format de sortie demandé:
+- 1) Description globale (1 paragraphe)
+- 2) Style visuel (réaliste/stylisé, influence, rendu)
+- 3) Composition (type de plan, angle, cadrage, DOF)
+- 4) Sujet (pose, orientation corps/visage, regard)
+- 5) Émotion (dominante + intensité)
+- 6) Environnement (lieu, météo, moment de la journée)
+- 7) Lumière & couleur (direction, contraste, température, palette)
+- 8) Effets (grain, texture, filtre)
+
+Important:
+- Ne pas inventer de détails impossibles à voir.
+- Si incertain, l’indiquer clairement.`;
+      setOutput("Prompt d’analyse", prompt);
+      setStatus("leftStatus","Prompt généré. Tu peux copier.","ok");
+      setStatus("rightStatus","Prompt généré. Tu peux copier.","ok");
+      return;
+    }
+
+    const desc = ($("descText").value || "").trim();
+    if(!desc){
+      setStatus("descStatus","Écris une description, puis génère.","err");
+      return;
+    }
+
+    // Build parameter block
+    let p = [];
+    p.push(`Tâche: ${MODE==="i2i" ? "Image→Image (transformation statique contrôlée)" : "Image→Vidéo (animation d’une image existante)"}.`);
+    p.push("");
+    p.push("Description (à suivre strictement):");
+    p.push(desc);
+    p.push("");
+
+    if(MODE==="i2v"){
+      p.push("Contraintes de stabilité:");
+      p.push("- Conserver identité, proportions, vêtements/coiffure sauf si explicitement choisi.");
+      p.push("- Cohérence inter-frame (pas de morphing, pas de dérive).");
+      p.push("- Maintenir la qualité et la netteté de l’image de base.");
+      p.push("- Mouvement physiquement plausible, pas d’inversion involontaire (pas de marche arrière).");
+      p.push("");
+    } else {
+      p.push("Contraintes de fidélité:");
+      p.push("- Conserver identité et proportions sauf si explicitement choisi.");
+      p.push("- Maintenir style choisi et cohérence globale.");
+      p.push("- Éviter la dérive de visage et de morphologie.");
+      p.push("");
+    }
+
+    p.push("Paramètres sélectionnés:");
+    let any=false;
+    for(const sec of DATA[MODE].sections){
+      const vals = Array.from(STATE[MODE][sec.key] || []);
+      if(vals.length){
+        any=true;
+        p.push(`- ${sec.title}:`);
+        vals.forEach(v => p.push(`  • ${v}`));
+      }
+    }
+    if(!any) p.push("- (aucun paramètre sélectionné)");
+    p.push("");
+    p.push("Sortie attendue:");
+    p.push(MODE==="i2v"
+      ? "- Produire une vidéo cohérente, stable, sans dérive de style/identité."
+      : "- Produire une image cohérente, respectant les choix ci-dessus."
+    );
+
+    setOutput("Prompt final", p.join("\n"));
+    setStatus("descStatus","Prompt généré. Tu peux copier.","ok");
+    setStatus("leftStatus","Prompt généré. Tu peux copier.","ok");
+    setStatus("rightStatus","Prompt généré. Tu peux copier.","ok");
+  }
+
+  // ---------- Output Buttons ----------
+  async function copyOutput(){
+    const text = $("output").textContent || "";
+    if(!text.trim()){
+      setStatus("rightStatus","Rien à copier.","err");
+      return;
+    }
+    try{
+      await navigator.clipboard.writeText(text);
+      setStatus("rightStatus","Copié ✅","ok");
+    }catch(e){
+      // fallback select
+      const r = document.createRange();
+      r.selectNodeContents($("output"));
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      setStatus("rightStatus","Copie auto bloquée. Texte sélectionné: Ctrl+C.","err");
+    }
+  }
+  function clearOutput(){
+    setOutput("Sortie",""); 
+    setStatus("rightStatus","");
+  }
+
+  // ---------- Dictation (description only) ----------
+  let recognition = null;
+  let dictating = false;
+
+  function toggleDictation(){
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SpeechRecognition){
+      setStatus("descStatus","Dictée non supportée par ce navigateur.","err");
+      return;
+    }
+    if(!recognition){
+      recognition = new SpeechRecognition();
+      recognition.lang = "fr-FR";
+      recognition.interimResults = true;
+      recognition.continuous = true;
+
+      recognition.onresult = (event)=>{
+        let finalText = "";
+        let interimText = "";
+        for(let i=event.resultIndex; i<event.results.length; i++){
+          const tr = event.results[i][0].transcript;
+          if(event.results[i].isFinal) finalText += tr + " ";
+          else interimText += tr;
+        }
+        const ta = $("descText");
+        if(finalText) ta.value = (ta.value + " " + finalText).replace(/\s+/g," ").trim();
+        if(dictating){
+          setStatus("descStatus", interimText ? ("Dictée… ("+interimText+")") : "Dictée…", "");
+        }
+      };
+
+      recognition.onerror = ()=>{
+        dictating = false;
+        $("btnMic").textContent = "🎙 Dicter";
+        setStatus("descStatus","Erreur dictée. Relance.","err");
+      };
+
+      recognition.onend = ()=>{
+        if(dictating){
+          dictating = false;
+          $("btnMic").textContent = "🎙 Dicter";
+          setStatus("descStatus","Dictée stoppée (navigateur).","err");
+        }
+      };
+    }
+
+    if(!dictating){
+      dictating = true;
+      $("btnMic").textContent = "⏹ Stop";
+      setStatus("descStatus","Dictée démarrée…","ok");
+      $("descText").focus();
+      try{ recognition.start(); }catch(e){}
+    }else{
+      dictating = false;
+      $("btnMic").textContent = "🎙 Dicter";
+      try{ recognition.stop(); }catch(e){}
+      setStatus("descStatus","Dictée arrêtée.","ok");
+    }
+  }
+
+  // ---------- Navigation ----------
+  function showMain(){
+    $("screenMenu").classList.add("hide");
+    $("screenMain").classList.remove("hide");
+    $("btnHome").style.visibility = "visible";
+  }
+  function showMenu(){
+    MODE = null;
+    $("screenMain").classList.add("hide");
+    $("screenMenu").classList.remove("hide");
+    $("btnHome").style.visibility = "hidden";
+    $("sections").innerHTML = "";
+    $("descBox").classList.remove("open");
+    $("i2tUpload").classList.add("hide");
+    $("descText").value = "";
+    setOutput("Sortie","(Choisis un mode, puis “Lister les choix” ou “Ajouter une description”.)");
+    setStatus("leftStatus","");
+    setStatus("rightStatus","");
+    setStatus("descStatus","");
+  }
+
+  function enterMode(mode){
+    MODE = mode;
+    ensureState();
+    $("modeTitle").textContent = DATA[MODE].title;
+    $("i2tUpload").classList.toggle("hide", MODE !== "i2t");
+    $("descBox").classList.remove("open");
+    setStatus("descStatus","");
+    setStatus("leftStatus","");
+    setStatus("rightStatus","");
+    buildSections();
+    setOutput("Sortie","(Utilise “Lister les choix” ou “Ajouter une description”.)");
+    showMain();
+  }
+
+  // i2t image preview
+  function initImageUpload(){
+    $("imgFile").addEventListener("change",(e)=>{
+      const f = e.target.files && e.target.files[0];
+      if(!f){ $("imgPreview").style.display="none"; return; }
+      const url = URL.createObjectURL(f);
+      $("imgPreview").src = url;
+      $("imgPreview").style.display = "block";
+    });
+  }
+
+  // ---------- Wire events ----------
+  function init(){
+    // Menu tiles
+    $("tileI2I").addEventListener("click", () => enterMode("i2i"));
+    $("tileI2V").addEventListener("click", () => enterMode("i2v"));
+    $("tileI2T").addEventListener("click", () => enterMode("i2t"));
+
+    // Home button
+    $("btnHome").addEventListener("click", showMenu);
+
+    // Workflow buttons
+    $("btnClearAll").addEventListener("click", clearAll);
+    $("btnListChoices").addEventListener("click", listChoices);
+    $("btnAddDesc").addEventListener("click", openDesc);
+
+    // Desc buttons
+    $("btnCloseDesc").addEventListener("click", closeDesc);
+    $("btnClearDesc").addEventListener("click", () => { $("descText").value=""; setStatus("descStatus",""); });
+    $("btnGenFinal").addEventListener("click", makeFinalPrompt);
+
+    // Dictation
+    $("btnMic").addEventListener("click", toggleDictation);
+
+    // Output buttons
+    $("btnCopyOut").addEventListener("click", copyOutput);
+    $("btnClearOut").addEventListener("click", clearOutput);
+
+    initImageUpload();
+  }
+
+  // Start
+  window.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+
+</body>
+</html>
